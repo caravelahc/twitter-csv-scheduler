@@ -7,10 +7,8 @@ from pathlib import Path
 from time import strftime, gmtime
 
 def execute():
-
     # Authenticate to Twitter
     authenticate_path = Path("authenticate.json")
-
     if authenticate_path.exists():
         with open(authenticate_path) as f:
             authenticate = json.load(f)
@@ -49,22 +47,18 @@ def execute():
     # Create API object
     api = tweepy.API(auth)
 
+    last_line = 0
     progress_path = Path("progress.json")
     if progress_path.exists():
         with open(progress_path) as f:
             file = json.load(f)
         last_line = file["last_line"]
-    else:
-        with open("progress.json","w") as f:
-            json.dump({"last_line":0},0)
 
     tweets = get_tweets("example.csv")
-    for tweet in tweets:
+    for tweet in tweets[last_line:]:
         # calcula quanto falta pra postagem
         date = tweet["DiaPost"] + tweet["HoraPost"]
         date_formt = datetime.strptime(date,"%d/%m/%Y%H:%M")
-        # print(date_formt)
-        #current date and time
         wait_time = date_formt - datetime.now()
         if wait_time.total_seconds() > 0:
             time.sleep(wait_time.total_seconds())
@@ -79,17 +73,16 @@ def execute():
         api.update_status(tweet["Tweet3"],in_reply_to_status_id=last_tweet.id)
 
         # Atualiza postagens
-        # last_line = last_line + 1
-        # with open("progress.json","w") as f:
-            # json.dump({"last_line":last_line},f)
+        last_line = last_line + 1
+        with open("progress.json","w") as f:
+            json.dump({"last_line":last_line},f)
 
     # auth.set_access_token("ACCESS_TOKEN", "ACCESS_TOKEN_SECRET")
 
 def get_tweets(csva):
     tweets = []
     reader = csv.DictReader(open(csva))
-    return reader
+    return [*reader]
 
 if __name__ == '__main__':
-    # get_tweets("example.csv")
     execute()
